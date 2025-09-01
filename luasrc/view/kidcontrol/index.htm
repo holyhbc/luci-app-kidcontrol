@@ -1,1 +1,63 @@
+<%+header%>
+
+<h2>Kid Control</h2>
+
+<!-- 定时规则配置（省略，保持前面那部分） -->
+
+<hr>
+
+<h3>设备列表</h3>
+<table class="cbi-section-table">
+    <tr class="cbi-section-table-titles">
+        <th>主机名</th>
+        <th>IP 地址</th>
+        <th>MAC 地址</th>
+        <th>操作</th>
+    </tr>
+    <% for _, dev in ipairs(devices) do %>
+    <tr class="cbi-section-table-row">
+        <td><%=dev.hostname or "未知"%></td>
+        <td><%=dev.ip%></td>
+        <td><%=dev.mac%></td>
+        <td>
+            <form method="post" action="<%=url('admin/services/kidcontrol/block')%>" style="display:inline;">
+                <input type="hidden" name="mac" value="<%=dev.mac%>">
+                <input type="submit" class="cbi-button cbi-button-apply" value="封禁">
+            </form>
+            <form method="post" action="<%=url('admin/services/kidcontrol/unblock')%>" style="display:inline;">
+                <input type="hidden" name="mac" value="<%=dev.mac%>">
+                <input type="submit" class="cbi-button cbi-button-reset" value="解封">
+            </form>
+        </td>
+    </tr>
+    <% end %>
+</table>
+
+<hr>
+
+<h3>当前已封禁设备</h3>
+<table class="cbi-section-table">
+    <tr class="cbi-section-table-titles">
+        <th>MAC 地址</th>
+        <th>操作</th>
+    </tr>
+    <% for _, mac in ipairs(blocked) do %>
+    <tr class="cbi-section-table-row">
+        <td><%=mac%></td>
+        <td>
+            <form method="post" action="<%=url('admin/services/kidcontrol/unblock')%>" style="display:inline;">
+                <input type="hidden" name="mac" value="<%=mac%>">
+                <input type="submit" class="cbi-button cbi-button-reset" value="解封">
+            </form>
+        </td>
+    </tr>
+    <% end %>
+    <% if #blocked == 0 then %>
+    <tr>
+        <td colspan="2">✅ 当前没有设备被封禁</td>
+    </tr>
+    <% end %>
+</table>
+
+<%+footer%>
 
