@@ -54,6 +54,8 @@ jobs:
     - name: Build luci-app-kidcontrol IPK
       run: |
         cd openwrt
+        # 避免 ncurses menuconfig 报错
+        export TERM=dumb
         make package/luci-app-kidcontrol/compile V=s
 
     - name: Generate version tag
