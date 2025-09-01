@@ -1,4 +1,4 @@
-name: Build luci-app-kidcontrol
+name: Build luci22-app-kidcontrol
 
 on:
   workflow_dispatch:
