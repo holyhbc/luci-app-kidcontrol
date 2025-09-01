@@ -1,56 +1,47 @@
 name: Build luci-app-kidcontrol
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      target:
-        description: "OpenWrt target (例如: mediatek/filogic, ramips/mt7621)"
-        required: true
-        default: "mediatek/filogic"
 
 jobs:
   build:
+    name: Build OpenWrt luci-app-kidcontrol
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Init OpenWrt SDK
-        run: |
-          sudo apt update
-          sudo apt install -y build-essential git libncurses5-dev zlib1g-dev gawk gettext unzip file libssl-dev wget python3
+    - name: Set up OpenWrt build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc zlib1g-dev unzip python3 python3-distutils file
 
-          TARGET="${{ github.event.inputs.target }}"
-          echo "编译目标: $TARGET"
+    - name: Clone OpenWrt source
+      run: |
+        mkdir -p openwrt
+        cd openwrt
+        git clone --depth=1 https://github.com/openwrt/openwrt.git .
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
 
-          BASE_URL="https://downloads.openwrt.org/snapshots/targets/$TARGET"
-          SDK_URL=$(wget -qO- $BASE_URL/ | grep -oE "openwrt-sdk-.*tar.xz" | head -n1)
+    - name: Copy luci-app-kidcontrol package
+      run: |
+        mkdir -p openwrt/package/luci-app-kidcontrol
+        cp -r ./* openwrt/package/luci-app-kidcontrol/
 
-          if [ -z "$SDK_URL" ]; then
-            echo "❌ 找不到 SDK ($TARGET)"
-            exit 1
-          fi
+    - name: Build luci-app-kidcontrol IPK
+      run: |
+        cd openwrt
+        make menuconfig  # 可选手动配置
+        # 只编译 luci-app-kidcontrol，避免编译全部固件
+        make package/luci-app-kidcontrol/compile V=s
 
-          wget $BASE_URL/$SDK_URL
-          tar -Jxf $SDK_URL
-          mv openwrt-sdk-* openwrt-sdk
-
-      - name: Prepare package
-        run: |
-          cd openwrt-sdk
-          mkdir -p package/luci-app-kidcontrol
-          cp -r $GITHUB_WORKSPACE/* package/luci-app-kidcontrol/
-
-      - name: Build package
-        run: |
-          cd openwrt-sdk
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-          make defconfig
-          make package/luci-app-kidcontrol/compile V=s
-
-      - name: Upload ipk
-        uses: actions/upload-artifact@v3
-        with:
-          name: luci-app-kidcontrol-ipk
-          path: openwrt-sdk/bin/packages/*/*/luci-app-kidcontrol_*.ipk
+    - name: Upload compiled IPK
+      uses: actions/upload-artifact@v4
+      with:
+        name: luci-app-kidcontrol
+        path: openwrt/bin/targets/mediatek/filogic/packages/luci-app-kidcontrol_*.ipk
