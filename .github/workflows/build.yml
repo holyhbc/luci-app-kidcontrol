@@ -31,6 +31,15 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
+    - name: Prepare feeds
+      run: |
+        cd openwrt
+        # 删除 video feed
+        sed -i '/src-git video/d' feeds.conf.default
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+
     - name: Copy luci-app-kidcontrol package
       run: |
         mkdir -p openwrt/package/luci-app-kidcontrol
