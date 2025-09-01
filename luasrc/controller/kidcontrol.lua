@@ -17,8 +17,23 @@ function action_index()
         end
         f:close()
     end
-    luci.template.render("kidcontrol/index", {devices = devices})
+
+    -- 获取当前已封禁设备
+    local blocked = {}
+    local cmd = io.popen("nft list chain inet kidnow prerouting 2>/dev/null")
+    if cmd then
+        for line in cmd:lines() do
+            local mac = line:match("ether saddr ([0-9A-Fa-f:]+)")
+            if mac then
+                table.insert(blocked, mac:upper())
+            end
+        end
+        cmd:close()
+    end
+
+    luci.template.render("kidcontrol/index", {devices = devices, blocked = blocked})
 end
+
 
 function action_save()
     local http = require "luci.http"
@@ -46,20 +61,21 @@ function action_block()
     local http = require "luci.http"
     local mac = http.formvalue("mac")
     if mac and mac ~= "" then
-        os.execute(string.format("nft add table inet kidnow 2>/dev/null"))
-        os.execute(string.format("nft add chain inet kidnow prerouting { type filter hook prerouting priority -150\; } 2>/dev/null"))
+        os.execute("nft add table inet kidnow 2>/dev/null")
+        os.execute("nft add chain inet kidnow prerouting { type filter hook prerouting priority -150; } 2>/dev/null")
         os.execute(string.format("nft add rule inet kidnow prerouting ether saddr %s drop 2>/dev/null", mac))
     end
     http.redirect(luci.dispatcher.build_url("admin/services/kidcontrol"))
 end
 
--- 手动立即解封
 function action_unblock()
     local http = require "luci.http"
     local mac = http.formvalue("mac")
     if mac and mac ~= "" then
-        os.execute(string.format("nft delete rule inet kidnow prerouting ether saddr %s drop 2>/dev/null", mac))
+        -- 这里为了安全，先 flush 后再重建，不然可能报错
+        os.execute("nft list chain inet kidnow prerouting | grep '"..mac.."' >/dev/null && nft delete rule inet kidnow prerouting ether saddr "..mac.." drop 2>/dev/null")
     end
     http.redirect(luci.dispatcher.build_url("admin/services/kidcontrol"))
 end
+
 
