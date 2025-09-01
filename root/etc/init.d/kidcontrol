@@ -1,1 +1,16 @@
+#!/bin/sh /etc/rc.common
+# Init script for kidcontrol
+
+START=95
+STOP=10
+
+start() {
+    echo "Starting kidcontrol..."
+    echo "* * * * * /usr/libexec/kid_control.sh" | crontab -
+}
+
+stop() {
+    echo "Stopping kidcontrol..."
+    crontab -r
+}
 
